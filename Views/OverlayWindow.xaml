@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="QuickInput"
+        Icon="/Assets/quick-input.ico"
         MinWidth="280"
         MinHeight="140"
         WindowStyle="None"

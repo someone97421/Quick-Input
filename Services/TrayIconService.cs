@@ -15,6 +15,7 @@ public sealed class TrayIconService : IDisposable
     private readonly OverlayController _overlayController;
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ToolStripMenuItem _startupItem;
+    private readonly Icon _icon;
     private AppSettings _settings;
     private SettingsWindow? _settingsWindow;
 
@@ -45,9 +46,10 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add("重启", null, (_, _) => Dispatch(Restart));
         menu.Items.Add("退出", null, (_, _) => Dispatch(Quit));
 
+        _icon = LoadApplicationIcon();
         _notifyIcon = new Forms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = _icon,
             Text = $"QuickInput - {_settings.Hotkey.DisplayText}",
             ContextMenuStrip = menu,
             Visible = false
@@ -171,9 +173,30 @@ public sealed class TrayIconService : IDisposable
         }
     }
 
+    private static Icon LoadApplicationIcon()
+    {
+        var exeIcon = Environment.ProcessPath is { Length: > 0 } path
+            ? Icon.ExtractAssociatedIcon(path)
+            : null;
+
+        if (exeIcon is not null)
+        {
+            return exeIcon;
+        }
+
+        using var stream = typeof(TrayIconService).Assembly.GetManifestResourceStream("QuickInput.Assets.quick-input.ico");
+        if (stream is not null)
+        {
+            return new Icon(stream);
+        }
+
+        return (Icon)SystemIcons.Application.Clone();
+    }
+
     public void Dispose()
     {
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        _icon.Dispose();
     }
 }
