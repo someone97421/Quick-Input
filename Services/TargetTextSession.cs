@@ -8,6 +8,7 @@ namespace QuickInput.Services;
 public sealed class TargetTextSession
 {
     private const int MaxMirrorLength = 12000;
+    private const uint TextMessageTimeoutMs = 250;
 
     private readonly IntPtr _foregroundWindow;
     private readonly IntPtr _focusedHandle;
@@ -35,6 +36,8 @@ public sealed class TargetTextSession
     public bool CanReadText => _valuePattern is not null || _textPattern is not null || _canUseWin32Text;
 
     public bool CanWriteText => CanWriteWithValuePattern() || _canUseWin32Text;
+
+    public bool HasPotentialWriteTarget => _valuePattern is not null || _canUseWin32Text;
 
     public string InitialValue => ReadCurrentText();
 
@@ -133,7 +136,12 @@ public sealed class TargetTextSession
 
         try
         {
-            return NativeMethods.SendMessage(_focusedHandle, NativeMethods.WmSetText, IntPtr.Zero, text) != IntPtr.Zero;
+            return SendTextMessage(
+                _focusedHandle,
+                NativeMethods.WmSetText,
+                IntPtr.Zero,
+                text,
+                out var result) && result != IntPtr.Zero;
         }
         catch
         {
@@ -198,11 +206,12 @@ public sealed class TargetTextSession
             return string.Empty;
         }
 
-        var length = NativeMethods.SendMessage(
-            _focusedHandle,
-            NativeMethods.WmGetTextLength,
-            IntPtr.Zero,
-            IntPtr.Zero).ToInt32();
+        if (!SendTextMessage(_focusedHandle, NativeMethods.WmGetTextLength, IntPtr.Zero, IntPtr.Zero, out var lengthResult))
+        {
+            return string.Empty;
+        }
+
+        var length = lengthResult.ToInt32();
 
         if (length <= 0)
         {
@@ -210,13 +219,68 @@ public sealed class TargetTextSession
         }
 
         var builder = new StringBuilder(Math.Min(length, MaxMirrorLength) + 1);
-        NativeMethods.SendMessage(
+        if (!SendTextMessage(
             _focusedHandle,
             NativeMethods.WmGetText,
             new IntPtr(builder.Capacity),
-            builder);
+            builder,
+            out _))
+        {
+            return string.Empty;
+        }
 
         return builder.ToString();
+    }
+
+    private static bool SendTextMessage(
+        IntPtr handle,
+        int message,
+        IntPtr wParam,
+        IntPtr lParam,
+        out IntPtr result)
+    {
+        return NativeMethods.SendMessageTimeout(
+            handle,
+            message,
+            wParam,
+            lParam,
+            NativeMethods.SmtoAbortIfHung,
+            TextMessageTimeoutMs,
+            out result) != IntPtr.Zero;
+    }
+
+    private static bool SendTextMessage(
+        IntPtr handle,
+        int message,
+        IntPtr wParam,
+        string lParam,
+        out IntPtr result)
+    {
+        return NativeMethods.SendMessageTimeout(
+            handle,
+            message,
+            wParam,
+            lParam,
+            NativeMethods.SmtoAbortIfHung,
+            TextMessageTimeoutMs,
+            out result) != IntPtr.Zero;
+    }
+
+    private static bool SendTextMessage(
+        IntPtr handle,
+        int message,
+        IntPtr wParam,
+        StringBuilder lParam,
+        out IntPtr result)
+    {
+        return NativeMethods.SendMessageTimeout(
+            handle,
+            message,
+            wParam,
+            lParam,
+            NativeMethods.SmtoAbortIfHung,
+            TextMessageTimeoutMs,
+            out result) != IntPtr.Zero;
     }
 
     private static bool IsWin32TextControl(IntPtr handle)

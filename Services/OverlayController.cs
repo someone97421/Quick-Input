@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using QuickInput.Core;
 using QuickInput.Views;
 
@@ -6,13 +7,25 @@ namespace QuickInput.Services;
 
 public sealed class OverlayController
 {
+    private static readonly TimeSpan SyncDelay = TimeSpan.FromMilliseconds(350);
+    private const string PendingSyncStatus = "悬浮输入 · 输入中，稍后同步";
+    private const string SyncedStatus = "悬浮输入 · 已同步到目标";
+
     private readonly SettingsStore _settingsStore;
+    private readonly DispatcherTimer _syncTimer;
     private OverlayWindow? _window;
     private TargetTextSession? _session;
+    private string? _pendingText;
+    private bool _syncInProgress;
 
     public OverlayController(SettingsStore settingsStore)
     {
         _settingsStore = settingsStore;
+        _syncTimer = new DispatcherTimer
+        {
+            Interval = SyncDelay
+        };
+        _syncTimer.Tick += (_, _) => FlushPendingTextSync();
     }
 
     public bool IsOpen => _window?.IsVisible == true;
@@ -39,7 +52,7 @@ public sealed class OverlayController
         _window = new OverlayWindow(_session.InitialValue, _session.StatusText);
         _window.CloseRequested += (_, commit) => Close(commit);
         _window.LocationOrSizeChanged += (_, _) => SavePlacement();
-        _window.TextChangedByUser += (_, text) => SyncTextToTarget(text);
+        _window.TextChangedByUser += (_, text) => QueueTextSync(text);
 
         var settings = _settingsStore.Load();
         WindowPlacementService.Restore(_window, settings.OverlayPlacement);
@@ -52,6 +65,16 @@ public sealed class OverlayController
         if (_window is null)
         {
             return;
+        }
+
+        if (commit)
+        {
+            FlushPendingTextSync(restoreFocus: false, runSynchronously: true);
+        }
+        else
+        {
+            _syncTimer.Stop();
+            _pendingText = null;
         }
 
         SavePlacement();
@@ -90,22 +113,124 @@ public sealed class OverlayController
         _settingsStore.Save(settings);
     }
 
-    private void SyncTextToTarget(string text)
+    private void QueueTextSync(string text)
     {
         if (_window is null || _session is null)
         {
             return;
         }
 
-        if (!_session.CanWriteText)
+        if (!_session.HasPotentialWriteTarget)
         {
             _window.SetStatus(_session.StatusText);
             return;
         }
 
-        _window.SetStatus(_session.TryWriteText(text)
-            ? _session.StatusText
-            : "悬浮输入 · 写入目标失败");
-        _window.EnsureInputFocus();
+        _pendingText = text;
+        _window.SetStatus(PendingSyncStatus);
+        _syncTimer.Stop();
+        _syncTimer.Start();
+    }
+
+    private void FlushPendingTextSync(bool restoreFocus = true, bool runSynchronously = false)
+    {
+        _syncTimer.Stop();
+
+        if (_pendingText is null)
+        {
+            return;
+        }
+
+        if (_syncInProgress)
+        {
+            return;
+        }
+
+        var text = _pendingText;
+        _pendingText = null;
+
+        if (runSynchronously)
+        {
+            SyncTextToTarget(text, restoreFocus);
+            return;
+        }
+
+        _ = SyncTextToTargetAsync(text, restoreFocus);
+    }
+
+    private void SyncTextToTarget(string text, bool restoreFocus)
+    {
+        var currentWindow = _window;
+        var currentSession = _session;
+        if (currentWindow is null || currentSession is null)
+        {
+            return;
+        }
+
+        if (!currentSession.HasPotentialWriteTarget)
+        {
+            currentWindow.SetStatus(currentSession.StatusText);
+            return;
+        }
+
+        _syncInProgress = true;
+        try
+        {
+            var success = currentSession.TryWriteText(text);
+            currentWindow.SetStatus(success ? SyncedStatus : "悬浮输入 · 写入目标失败");
+            if (restoreFocus)
+            {
+                currentWindow.EnsureInputFocus();
+            }
+        }
+        finally
+        {
+            _syncInProgress = false;
+        }
+    }
+
+    private async Task SyncTextToTargetAsync(string text, bool restoreFocus)
+    {
+        var currentWindow = _window;
+        var currentSession = _session;
+        if (currentWindow is null || currentSession is null)
+        {
+            return;
+        }
+
+        if (!currentSession.HasPotentialWriteTarget)
+        {
+            currentWindow.SetStatus(currentSession.StatusText);
+            return;
+        }
+
+        _syncInProgress = true;
+        try
+        {
+            var success = await Task.Run(() => currentSession.TryWriteText(text));
+            if (!ReferenceEquals(currentWindow, _window) || !ReferenceEquals(currentSession, _session))
+            {
+                return;
+            }
+
+            currentWindow.SetStatus(_pendingText is not null
+                ? PendingSyncStatus
+                : success
+                    ? SyncedStatus
+                    : "悬浮输入 · 写入目标失败");
+            if (restoreFocus)
+            {
+                currentWindow.EnsureInputFocus();
+            }
+        }
+        finally
+        {
+            _syncInProgress = false;
+            if (_pendingText is not null && _window is not null)
+            {
+                _syncTimer.Stop();
+                _syncTimer.Start();
+            }
+        }
     }
 }
