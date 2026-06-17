@@ -16,6 +16,7 @@ internal static class NativeMethods
     public const int VkShift = 0x10;
     public const int VkControl = 0x11;
     public const int VkMenu = 0x12;
+    public const int VkReturn = 0x0D;
     public const int VkLwin = 0x5B;
     public const int VkRwin = 0x5C;
 

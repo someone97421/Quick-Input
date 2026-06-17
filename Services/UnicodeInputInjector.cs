@@ -21,9 +21,9 @@ internal static class UnicodeInputInjector
             return false;
         }
 
-        foreach (var chunk in EnumerateChunks(text, DefaultChunkSize))
+        foreach (var inputs in BuildInputChunks(text, DefaultChunkSize))
         {
-            if (!SendChunk(chunk))
+            if (!SendInputs(inputs))
             {
                 return false;
             }
@@ -34,26 +34,8 @@ internal static class UnicodeInputInjector
         return true;
     }
 
-    private static bool SendChunk(string chunk)
+    private static bool SendInputs(NativeMethods.Input[] inputs)
     {
-        var inputs = new NativeMethods.Input[chunk.Length * 2];
-
-        for (var i = 0; i < chunk.Length; i++)
-        {
-            var scan = (ushort)chunk[i];
-            var inputIndex = i * 2;
-
-            inputs[inputIndex].Type = NativeMethods.InputKeyboard;
-            inputs[inputIndex].U.Ki.WVk = 0;
-            inputs[inputIndex].U.Ki.WScan = scan;
-            inputs[inputIndex].U.Ki.DwFlags = NativeMethods.KeyeventfUnicode;
-
-            inputs[inputIndex + 1].Type = NativeMethods.InputKeyboard;
-            inputs[inputIndex + 1].U.Ki.WVk = 0;
-            inputs[inputIndex + 1].U.Ki.WScan = scan;
-            inputs[inputIndex + 1].U.Ki.DwFlags = NativeMethods.KeyeventfUnicode | NativeMethods.KeyeventfKeyup;
-        }
-
         var sent = NativeMethods.SendInput(
             (uint)inputs.Length,
             inputs,
@@ -62,23 +44,146 @@ internal static class UnicodeInputInjector
         return sent == inputs.Length;
     }
 
-    private static IEnumerable<string> EnumerateChunks(string text, int maxChunkLength)
+    private static IEnumerable<NativeMethods.Input[]> BuildInputChunks(string text, int maxChunkLength)
     {
-        for (var start = 0; start < text.Length;)
+        var inputs = new List<NativeMethods.Input>(maxChunkLength * 2);
+        var unitsInChunk = 0;
+
+        for (var i = 0; i < text.Length; i++)
         {
-            var length = Math.Min(maxChunkLength, text.Length - start);
-            if (length < text.Length - start && char.IsHighSurrogate(text[start + length - 1]))
+            if (text[i] == '\r')
             {
-                length--;
+                if (unitsInChunk >= maxChunkLength)
+                {
+                    yield return inputs.ToArray();
+                    inputs.Clear();
+                    unitsInChunk = 0;
+                }
+
+                AddShiftEnter(inputs);
+                if (i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    i++;
+                }
+
+                unitsInChunk++;
+                continue;
             }
 
-            if (length <= 0)
+            if (text[i] == '\n')
             {
-                length = Math.Min(2, text.Length - start);
+                if (unitsInChunk >= maxChunkLength)
+                {
+                    yield return inputs.ToArray();
+                    inputs.Clear();
+                    unitsInChunk = 0;
+                }
+
+                AddShiftEnter(inputs);
+                unitsInChunk++;
+                continue;
             }
 
-            yield return text.Substring(start, length);
-            start += length;
+            var requiredUnits = i + 1 < text.Length &&
+                                char.IsHighSurrogate(text[i]) &&
+                                char.IsLowSurrogate(text[i + 1])
+                ? 2
+                : 1;
+
+            if (unitsInChunk > 0 && unitsInChunk + requiredUnits > maxChunkLength)
+            {
+                yield return inputs.ToArray();
+                inputs.Clear();
+                unitsInChunk = 0;
+            }
+
+            AddUnicodeChar(inputs, text[i]);
+            if (requiredUnits == 2)
+            {
+                i++;
+                AddUnicodeChar(inputs, text[i]);
+            }
+
+            unitsInChunk += requiredUnits;
         }
+
+        if (inputs.Count > 0)
+        {
+            yield return inputs.ToArray();
+        }
+    }
+
+    private static void AddUnicodeChar(List<NativeMethods.Input> inputs, char character)
+    {
+        var scan = (ushort)character;
+
+        inputs.Add(new NativeMethods.Input
+        {
+            Type = NativeMethods.InputKeyboard,
+            U = new NativeMethods.InputUnion
+            {
+                Ki = new NativeMethods.KeyboardInput
+                {
+                    WVk = 0,
+                    WScan = scan,
+                    DwFlags = NativeMethods.KeyeventfUnicode
+                }
+            }
+        });
+
+        inputs.Add(new NativeMethods.Input
+        {
+            Type = NativeMethods.InputKeyboard,
+            U = new NativeMethods.InputUnion
+            {
+                Ki = new NativeMethods.KeyboardInput
+                {
+                    WVk = 0,
+                    WScan = scan,
+                    DwFlags = NativeMethods.KeyeventfUnicode | NativeMethods.KeyeventfKeyup
+                }
+            }
+        });
+    }
+
+    private static void AddShiftEnter(List<NativeMethods.Input> inputs)
+    {
+        AddVirtualKeyDown(inputs, NativeMethods.VkShift);
+        AddVirtualKeyDown(inputs, NativeMethods.VkReturn);
+        AddVirtualKeyUp(inputs, NativeMethods.VkReturn);
+        AddVirtualKeyUp(inputs, NativeMethods.VkShift);
+    }
+
+    private static void AddVirtualKeyDown(List<NativeMethods.Input> inputs, ushort virtualKey)
+    {
+        inputs.Add(new NativeMethods.Input
+        {
+            Type = NativeMethods.InputKeyboard,
+            U = new NativeMethods.InputUnion
+            {
+                Ki = new NativeMethods.KeyboardInput
+                {
+                    WVk = virtualKey,
+                    WScan = 0
+                }
+            }
+        });
+    }
+
+    private static void AddVirtualKeyUp(List<NativeMethods.Input> inputs, ushort virtualKey)
+    {
+        inputs.Add(new NativeMethods.Input
+        {
+            Type = NativeMethods.InputKeyboard,
+            U = new NativeMethods.InputUnion
+            {
+                Ki = new NativeMethods.KeyboardInput
+                {
+                    WVk = virtualKey,
+                    WScan = 0,
+                    DwFlags = NativeMethods.KeyeventfKeyup
+                }
+            }
+        });
     }
 }
