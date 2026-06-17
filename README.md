@@ -12,9 +12,9 @@ QuickInput 是一个 Windows 悬浮输入框工具。运行后驻留在系统托
 - 托盘右键菜单：显示/隐藏、设置快捷键、开机自启动、复位位置、重启、退出
 - 快捷键设置窗口，支持自定义组合键
 - 目标输入框同步：
-  - 优先使用 UI Automation `ValuePattern.SetValue()` 写回
-  - 对标准 Win32/RichEdit 编辑框使用 `WM_SETTEXT` 兜底
-  - 支持 `TextPattern` 的控件可读取初始内容，但通常不能写回
+  - 对标准 Win32/RichEdit 编辑框使用 `WM_SETTEXT` 实时写回
+  - 对 Electron、Chromium、聊天软件、IDE 等现代应用，关闭悬浮窗时使用 `SendInput` Unicode 字符流输入到原光标位置
+  - 支持 UI Automation `ValuePattern`/`TextPattern` 的控件可读取初始内容，但默认不依赖 UIA 写回
   - 不使用剪贴板，不模拟粘贴
 
 ## 构建
@@ -47,4 +47,4 @@ Ctrl + Alt + Space
 
 ## 兼容性说明
 
-Windows 对跨进程输入有权限边界。普通权限运行的 QuickInput 无法读写管理员权限运行的目标程序，这是系统 UIPI 安全限制。对浏览器、Office、聊天软件、IDE 等复杂编辑器，同步能力取决于目标控件是否暴露可写的 UI Automation `ValuePattern`。如果目标控件只暴露 `TextPattern` 或完全不暴露文本接口，悬浮框仍可输入，但状态栏会提示无法写回目标。
+Windows 对跨进程输入有权限边界。普通权限运行的 QuickInput 无法读写管理员权限运行的目标程序，这是系统 UIPI 安全限制。对浏览器、Office、聊天软件、IDE 等复杂编辑器，QuickInput 会使用兼容提交模式：悬浮框内不会实时同步，关闭悬浮窗时会把内容作为 Unicode 按键流输入到原目标窗口的光标位置。

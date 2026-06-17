@@ -9,6 +9,7 @@ public sealed class OverlayController
 {
     private static readonly TimeSpan SyncDelay = TimeSpan.FromMilliseconds(350);
     private const string PendingSyncStatus = "悬浮输入 · 输入中，稍后同步";
+    private const string InjectionPendingStatus = "悬浮输入 · 关闭后输入到目标";
     private const string SyncedStatus = "悬浮输入 · 已同步到目标";
 
     private readonly SettingsStore _settingsStore;
@@ -67,8 +68,17 @@ public sealed class OverlayController
             return;
         }
 
-        if (commit)
+        var currentWindow = _window;
+        var currentSession = _session;
+        var textToCommit = currentWindow.CurrentText;
+        var shouldInjectText = commit &&
+                               currentSession is not null &&
+                               !currentSession.CanReplaceText &&
+                               currentSession.CanInjectText;
+
+        if (commit && currentSession?.CanReplaceText == true)
         {
+            _pendingText = textToCommit;
             FlushPendingTextSync(restoreFocus: false, runSynchronously: true);
         }
         else
@@ -79,14 +89,19 @@ public sealed class OverlayController
 
         SavePlacement();
 
-        var currentWindow = _window;
-        var currentSession = _session;
         _window = null;
         _session = null;
 
         currentWindow.ForceClose();
 
-        currentSession?.RestoreFocus();
+        if (shouldInjectText)
+        {
+            currentSession!.TryInjectText(textToCommit);
+        }
+        else
+        {
+            currentSession?.RestoreFocus();
+        }
     }
 
     public void ResetPlacement()
@@ -120,16 +135,26 @@ public sealed class OverlayController
             return;
         }
 
+        if (_session.CanReplaceText)
+        {
+            _pendingText = text;
+            _window.SetStatus(PendingSyncStatus);
+            _syncTimer.Stop();
+            _syncTimer.Start();
+            return;
+        }
+
+        if (_session.CanInjectText)
+        {
+            _window.SetStatus(InjectionPendingStatus);
+            return;
+        }
+
         if (!_session.HasPotentialWriteTarget)
         {
             _window.SetStatus(_session.StatusText);
             return;
         }
-
-        _pendingText = text;
-        _window.SetStatus(PendingSyncStatus);
-        _syncTimer.Stop();
-        _syncTimer.Start();
     }
 
     private void FlushPendingTextSync(bool restoreFocus = true, bool runSynchronously = false)
@@ -167,7 +192,7 @@ public sealed class OverlayController
             return;
         }
 
-        if (!currentSession.HasPotentialWriteTarget)
+        if (!currentSession.CanReplaceText)
         {
             currentWindow.SetStatus(currentSession.StatusText);
             return;
@@ -198,7 +223,7 @@ public sealed class OverlayController
             return;
         }
 
-        if (!currentSession.HasPotentialWriteTarget)
+        if (!currentSession.CanReplaceText)
         {
             currentWindow.SetStatus(currentSession.StatusText);
             return;

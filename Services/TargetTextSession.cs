@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Automation;
@@ -35,17 +36,23 @@ public sealed class TargetTextSession
 
     public bool CanReadText => _valuePattern is not null || _textPattern is not null || _canUseWin32Text;
 
-    public bool CanWriteText => CanWriteWithValuePattern() || _canUseWin32Text;
+    public bool CanReplaceText => _canUseWin32Text;
 
-    public bool HasPotentialWriteTarget => _valuePattern is not null || _canUseWin32Text;
+    public bool CanInjectText => _foregroundWindow != IntPtr.Zero;
 
-    public string InitialValue => ReadCurrentText();
+    public bool CanWriteText => CanReplaceText || CanInjectText;
 
-    public string StatusText => CanWriteText
+    public bool HasPotentialWriteTarget => CanReplaceText || CanInjectText;
+
+    public string InitialValue => CanReplaceText ? ReadCurrentText() : string.Empty;
+
+    public string StatusText => CanReplaceText
         ? "悬浮输入 · 正在同步到目标"
-        : CanReadText
-            ? "悬浮输入 · 当前目标只读，无法写回"
-            : "悬浮输入 · 当前目标不支持同步";
+        : CanInjectText
+            ? "悬浮输入 · 关闭后输入到目标"
+            : CanReadText
+                ? "悬浮输入 · 当前目标只读，无法写回"
+                : "悬浮输入 · 当前目标不支持同步";
 
     public static TargetTextSession Capture()
     {
@@ -116,19 +123,6 @@ public sealed class TargetTextSession
 
     public bool TryWriteText(string text)
     {
-        try
-        {
-            if (CanWriteWithValuePattern())
-            {
-                _valuePattern!.SetValue(text);
-                return true;
-            }
-        }
-        catch
-        {
-            // Fall through to a Win32 edit-control write when that is available.
-        }
-
         if (!_canUseWin32Text)
         {
             return false;
@@ -149,6 +143,25 @@ public sealed class TargetTextSession
         }
     }
 
+    public bool TryInjectText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            RestoreFocus();
+            return true;
+        }
+
+        WaitForModifierRelease(TimeSpan.FromMilliseconds(500));
+
+        if (!RestoreFocusAndWait(TimeSpan.FromMilliseconds(200)))
+        {
+            return false;
+        }
+
+        Thread.Sleep(10);
+        return UnicodeInputInjector.SendText(text);
+    }
+
     public void RestoreFocus()
     {
         if (_foregroundWindow != IntPtr.Zero)
@@ -166,6 +179,47 @@ public sealed class TargetTextSession
         }
     }
 
+    private bool RestoreFocusAndWait(TimeSpan timeout)
+    {
+        RestoreFocus();
+
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < timeout)
+        {
+            if (NativeMethods.GetForegroundWindow() == _foregroundWindow)
+            {
+                return true;
+            }
+
+            Thread.Sleep(1);
+        }
+
+        return NativeMethods.GetForegroundWindow() == _foregroundWindow;
+    }
+
+    private static void WaitForModifierRelease(TimeSpan timeout)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < timeout && AnyModifierKeyPressed())
+        {
+            Thread.Sleep(10);
+        }
+    }
+
+    private static bool AnyModifierKeyPressed()
+    {
+        return IsKeyPressed(NativeMethods.VkShift) ||
+               IsKeyPressed(NativeMethods.VkControl) ||
+               IsKeyPressed(NativeMethods.VkMenu) ||
+               IsKeyPressed(NativeMethods.VkLwin) ||
+               IsKeyPressed(NativeMethods.VkRwin);
+    }
+
+    private static bool IsKeyPressed(int virtualKey)
+    {
+        return (NativeMethods.GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+    }
+
     private static IntPtr GetFocusedHandle(IntPtr foreground)
     {
         if (foreground == IntPtr.Zero)
@@ -180,23 +234,6 @@ public sealed class TargetTextSession
         };
 
         return NativeMethods.GetGUIThreadInfo(threadId, ref info) ? info.HwndFocus : IntPtr.Zero;
-    }
-
-    private bool CanWriteWithValuePattern()
-    {
-        if (_valuePattern is null)
-        {
-            return false;
-        }
-
-        try
-        {
-            return !_valuePattern.Current.IsReadOnly;
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     private string ReadWin32Text()

@@ -10,6 +10,14 @@ internal static class NativeMethods
     public const int WmGetText = 0x000D;
     public const int WmGetTextLength = 0x000E;
     public const uint SmtoAbortIfHung = 0x0002;
+    public const uint InputKeyboard = 1;
+    public const uint KeyeventfKeyup = 0x0002;
+    public const uint KeyeventfUnicode = 0x0004;
+    public const int VkShift = 0x10;
+    public const int VkControl = 0x11;
+    public const int VkMenu = 0x12;
+    public const int VkLwin = 0x5B;
+    public const int VkRwin = 0x5C;
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -74,6 +82,12 @@ internal static class NativeMethods
         uint timeout,
         out IntPtr result);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern uint SendInput(uint nInputs, Input[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
     public const int GwlExStyle = -20;
     public const int WsExToolWindow = 0x00000080;
 
@@ -104,5 +118,54 @@ internal static class NativeMethods
         public IntPtr HwndMoveSize;
         public IntPtr HwndCaret;
         public Rect RcCaret;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Input
+    {
+        public uint Type;
+        public InputUnion U;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct InputUnion
+    {
+        [FieldOffset(0)]
+        public MouseInput Mi;
+
+        [FieldOffset(0)]
+        public KeyboardInput Ki;
+
+        [FieldOffset(0)]
+        public HardwareInput Hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KeyboardInput
+    {
+        public ushort WVk;
+        public ushort WScan;
+        public uint DwFlags;
+        public uint Time;
+        public IntPtr DwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MouseInput
+    {
+        public int Dx;
+        public int Dy;
+        public uint MouseData;
+        public uint DwFlags;
+        public uint Time;
+        public IntPtr DwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct HardwareInput
+    {
+        public uint UMsg;
+        public ushort WParamL;
+        public ushort WParamH;
     }
 }
