@@ -9,8 +9,6 @@ internal static class NativeMethods
     public const int WmSetText = 0x000C;
     public const int WmGetText = 0x000D;
     public const int WmGetTextLength = 0x000E;
-    public const int WmNcLButtonDown = 0x00A1;
-    public const int HtBottomRight = 17;
     public const uint SmtoAbortIfHung = 0x0002;
     public const uint InputKeyboard = 1;
     public const uint KeyeventfKeyup = 0x0002;
@@ -90,9 +88,6 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern short GetAsyncKeyState(int vKey);
-
-    [DllImport("user32.dll")]
-    public static extern bool ReleaseCapture();
 
     public const int GwlExStyle = -20;
     public const int WsExToolWindow = 0x00000080;

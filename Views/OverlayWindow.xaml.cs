@@ -174,23 +174,6 @@ public partial class OverlayWindow : Window
         InputBox.Focus();
     }
 
-    private void ResizeHandle_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        e.Handled = true;
-        var handle = new WindowInteropHelper(this).Handle;
-        if (handle == IntPtr.Zero)
-        {
-            return;
-        }
-
-        NativeMethods.ReleaseCapture();
-        NativeMethods.SendMessage(
-            handle,
-            NativeMethods.WmNcLButtonDown,
-            new IntPtr(NativeMethods.HtBottomRight),
-            IntPtr.Zero);
-    }
-
     private void OverlayWindow_OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (_forceClose)
