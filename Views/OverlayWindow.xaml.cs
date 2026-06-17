@@ -1,8 +1,11 @@
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
+using QuickInput.Core;
 using QuickInput.Interop;
+using WpfControls = System.Windows.Controls;
 
 namespace QuickInput.Views;
 
@@ -10,6 +13,7 @@ public partial class OverlayWindow : Window
 {
     private bool _forceClose;
     private bool _updatingTextFromTarget;
+    private readonly IReadOnlyList<QuickPhrase> _quickPhrases;
 
     public event EventHandler<bool>? CloseRequested;
     public event EventHandler? LocationOrSizeChanged;
@@ -17,18 +21,23 @@ public partial class OverlayWindow : Window
 
     public string CurrentText => InputBox.Text;
 
-    public OverlayWindow(string initialText, string statusText)
+    public OverlayWindow(string initialText, string statusText, IReadOnlyList<QuickPhrase> quickPhrases)
     {
         InitializeComponent();
+        _quickPhrases = quickPhrases;
 
         _updatingTextFromTarget = true;
         InputBox.Text = initialText;
         _updatingTextFromTarget = false;
         StatusText.Text = statusText;
+        PhraseButton.Visibility = _quickPhrases.Count > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         SourceInitialized += OverlayWindow_OnSourceInitialized;
         LocationChanged += (_, _) => LocationOrSizeChanged?.Invoke(this, EventArgs.Empty);
         SizeChanged += (_, _) => LocationOrSizeChanged?.Invoke(this, EventArgs.Empty);
+        SizeChanged += (_, _) => UpdateRootClip();
         Closing += OverlayWindow_OnClosing;
     }
 
@@ -118,6 +127,70 @@ public partial class OverlayWindow : Window
         CloseRequested?.Invoke(this, false);
     }
 
+    private void PhraseButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (_quickPhrases.Count == 0)
+        {
+            return;
+        }
+
+        var menu = new WpfControls.ContextMenu();
+        foreach (var phrase in _quickPhrases)
+        {
+            if (string.IsNullOrWhiteSpace(phrase.Text))
+            {
+                continue;
+            }
+
+            var item = new WpfControls.MenuItem
+            {
+                Header = phrase.DisplayTitle,
+                Tag = phrase.Text
+            };
+            item.Click += PhraseMenuItem_OnClick;
+            menu.Items.Add(item);
+        }
+
+        if (menu.Items.Count == 0)
+        {
+            return;
+        }
+
+        menu.PlacementTarget = PhraseButton;
+        menu.IsOpen = true;
+    }
+
+    private void PhraseMenuItem_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not WpfControls.MenuItem { Tag: string text })
+        {
+            return;
+        }
+
+        var selectionStart = InputBox.SelectionStart;
+        InputBox.SelectedText = text;
+        InputBox.SelectionStart = selectionStart + text.Length;
+        InputBox.SelectionLength = 0;
+        InputBox.Focus();
+    }
+
+    private void ResizeHandle_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        NativeMethods.ReleaseCapture();
+        NativeMethods.SendMessage(
+            handle,
+            NativeMethods.WmNcLButtonDown,
+            new IntPtr(NativeMethods.HtBottomRight),
+            IntPtr.Zero);
+    }
+
     private void OverlayWindow_OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (_forceClose)
@@ -135,5 +208,14 @@ public partial class OverlayWindow : Window
         var style = NativeMethods.GetWindowLongPtr(handle, NativeMethods.GwlExStyle).ToInt64();
         style |= NativeMethods.WsExToolWindow;
         NativeMethods.SetWindowLongPtr(handle, NativeMethods.GwlExStyle, new IntPtr(style));
+        UpdateRootClip();
+    }
+
+    private void UpdateRootClip()
+    {
+        RootBorder.Clip = new RectangleGeometry(
+            new Rect(0, 0, RootBorder.ActualWidth, RootBorder.ActualHeight),
+            8,
+            8);
     }
 }

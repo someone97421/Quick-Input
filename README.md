@@ -10,7 +10,8 @@ QuickInput 是一个 Windows 悬浮输入框工具。运行后驻留在系统托
 - 自动记忆上一次位置和大小
 - 屏幕分辨率、多显示器变化后按虚拟桌面比例恢复并修正到可见区域
 - 托盘右键菜单：显示/隐藏、设置快捷键、开机自启动、复位位置、重启、退出
-- 快捷键设置窗口，支持自定义组合键
+- 设置窗口，支持自定义快捷键、浅色/深色/跟随系统主题、快捷短语
+- 悬浮窗可从短语菜单插入预设固定文字
 - 目标输入框同步：
   - 对标准 Win32/RichEdit 编辑框使用 `WM_SETTEXT` 实时写回
   - 对 Electron、Chromium、聊天软件、IDE 等现代应用，关闭悬浮窗时使用 `SendInput` Unicode 字符流输入到原光标位置
@@ -19,7 +20,7 @@ QuickInput 是一个 Windows 悬浮输入框工具。运行后驻留在系统托
 
 ## 构建
 
-需要安装 .NET 10 SDK。
+需要安装 .NET 10 SDK。发布脚本会先清理旧产物，再一次性构建免运行时版和依赖运行时版，并用构建时间命名。
 
 ```powershell
 .\scripts\publish.ps1
@@ -28,8 +29,11 @@ QuickInput 是一个 Windows 悬浮输入框工具。运行后驻留在系统托
 发布产物：
 
 ```text
-artifacts\QuickInput.exe
+artifacts\QuickInput-self-contained-win-x64-时间戳.exe
+artifacts\QuickInput-framework-dependent-win-x64-时间戳.exe
 ```
+
+更多说明见 [BUILD.md](BUILD.md)。
 
 ## 开发运行
 

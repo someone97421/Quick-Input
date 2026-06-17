@@ -20,9 +20,10 @@
                         GlassFrameThickness="0" />
   </shell:WindowChrome.WindowChrome>
 
-  <Border Margin="8"
-          Background="#F9FAFC"
-          BorderBrush="#BFC7D5"
+  <Border x:Name="RootBorder"
+          Margin="8"
+          Background="{DynamicResource PanelBackground}"
+          BorderBrush="{DynamicResource BorderBrushSoft}"
           BorderThickness="1"
           CornerRadius="8"
           SnapsToDevicePixels="True">
@@ -30,7 +31,7 @@
       <DropShadowEffect BlurRadius="24"
                         ShadowDepth="6"
                         Opacity="0.22"
-                        Color="#202634" />
+                        Color="{DynamicResource ShadowColor}" />
     </Border.Effect>
     <Grid>
       <Grid.RowDefinitions>
@@ -40,7 +41,7 @@
       </Grid.RowDefinitions>
 
       <Grid Grid.Row="0"
-            Background="#EEF2F8"
+            Background="{DynamicResource HeaderBackground}"
             MouseLeftButtonDown="Header_OnMouseLeftButtonDown">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
@@ -51,12 +52,12 @@
                     Margin="12,0,0,0">
           <Ellipse Width="9"
                    Height="9"
-                   Fill="#2563EB"
+                   Fill="{DynamicResource AccentBrush}"
                    Margin="0,0,8,0" />
           <TextBlock Text="QuickInput"
                      FontSize="13"
                      FontWeight="SemiBold"
-                     Foreground="#1F2937" />
+                     Foreground="{DynamicResource PrimaryTextBrush}" />
         </StackPanel>
         <Button Grid.Column="1"
                 Width="32"
@@ -65,7 +66,7 @@
                 Content="×"
                 FontSize="18"
                 FontWeight="SemiBold"
-                Foreground="#4B5563"
+                Foreground="{DynamicResource SecondaryTextBrush}"
                 Background="Transparent"
                 BorderThickness="0"
                 Click="Cancel_OnClick" />
@@ -80,8 +81,9 @@
                IsTabStop="True"
                Focusable="True"
                BorderThickness="0"
-               Background="#FFFFFF"
-               Foreground="#111827"
+               Background="{DynamicResource InputBackground}"
+               Foreground="{DynamicResource InputForeground}"
+               CaretBrush="{DynamicResource InputForeground}"
                FontSize="18"
                TextWrapping="Wrap"
                VerticalScrollBarVisibility="Auto"
@@ -94,17 +96,59 @@
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="18" />
         </Grid.ColumnDefinitions>
         <TextBlock x:Name="StatusText"
                    VerticalAlignment="Center"
                    FontSize="12"
-                   Foreground="#64748B" />
-        <TextBlock Grid.Column="1"
-                   Text="◢"
-                   FontSize="14"
-                   Foreground="#94A3B8"
-                   VerticalAlignment="Bottom"
-                   HorizontalAlignment="Right" />
+                   Foreground="{DynamicResource SecondaryTextBrush}" />
+        <Button x:Name="PhraseButton"
+                Grid.Column="1"
+                Width="28"
+                Height="22"
+                Padding="0"
+                ToolTip="快捷短语"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Background="Transparent"
+                BorderBrush="{DynamicResource BorderBrushSoft}"
+                BorderThickness="1"
+                Click="PhraseButton_OnClick">
+          <Viewbox Width="14"
+                   Height="14">
+            <Canvas Width="24"
+                    Height="24">
+              <Path Stroke="{DynamicResource SecondaryTextBrush}"
+                    StrokeThickness="2"
+                    StrokeStartLineCap="Round"
+                    StrokeEndLineCap="Round"
+                    StrokeLineJoin="Round"
+                    Fill="Transparent"
+                    Data="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <Path Stroke="{DynamicResource SecondaryTextBrush}"
+                    StrokeThickness="2"
+                    StrokeStartLineCap="Round"
+                    StrokeEndLineCap="Round"
+                    Data="M8 9h8 M8 13h5" />
+            </Canvas>
+          </Viewbox>
+        </Button>
+        <Border x:Name="ResizeHandle"
+                Grid.Column="2"
+                Width="18"
+                Height="18"
+                Margin="4,0,0,0"
+                Background="Transparent"
+                Cursor="SizeNWSE"
+                ToolTip="拖拽调整大小"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                MouseLeftButtonDown="ResizeHandle_OnMouseLeftButtonDown">
+          <Path Stroke="{DynamicResource MutedTextBrush}"
+                StrokeThickness="1.4"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                Data="M12 16H16V12 M7 16H8 M12 11H16V7" />
+        </Border>
       </Grid>
     </Grid>
   </Border>

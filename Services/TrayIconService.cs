@@ -88,7 +88,7 @@ public sealed class TrayIconService : IDisposable
             return;
         }
 
-        var window = new SettingsWindow(_settings.Hotkey)
+        var window = new SettingsWindow(_settings)
         {
             Topmost = true
         };
@@ -104,11 +104,17 @@ public sealed class TrayIconService : IDisposable
         if (window.ShowDialog() == true)
         {
             var previous = _settings.Hotkey.Clone();
-            var selectedHotkey = window.Hotkey;
+            var selectedSettings = window.Settings;
+            var selectedHotkey = selectedSettings.Hotkey;
             try
             {
                 _hotkeyService.Register(selectedHotkey);
-                _settings.Hotkey = selectedHotkey;
+                _settings = selectedSettings;
+                _startupItem.CheckedChanged -= StartupItem_OnCheckedChanged;
+                _startupItem.Checked = _settings.StartWithWindows;
+                _startupItem.CheckedChanged += StartupItem_OnCheckedChanged;
+                StartupService.SetEnabled(_settings.StartWithWindows);
+                ThemeService.Apply(_settings.Theme);
                 _settingsStore.Save(_settings);
                 _notifyIcon.Text = $"QuickInput - {_settings.Hotkey.DisplayText}";
             }

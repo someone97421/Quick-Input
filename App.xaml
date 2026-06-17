@@ -3,8 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown">
   <Application.Resources>
-    <SolidColorBrush x:Key="PanelBackground" Color="#F7F8FA" />
+    <SolidColorBrush x:Key="WindowBackground" Color="#F7F8FA" />
+    <SolidColorBrush x:Key="PanelBackground" Color="#F9FAFC" />
+    <SolidColorBrush x:Key="HeaderBackground" Color="#EEF2F8" />
+    <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="InputForeground" Color="#111827" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#1F2937" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#64748B" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#94A3B8" />
+    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FieldBackground" Color="#F9FAFB" />
     <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
-    <SolidColorBrush x:Key="BorderBrushSoft" Color="#D6DAE3" />
+    <SolidColorBrush x:Key="BorderBrushSoft" Color="#BFC7D5" />
+    <SolidColorBrush x:Key="ButtonTextBrush" Color="#111827" />
+    <SolidColorBrush x:Key="DangerBrush" Color="#DC2626" />
+    <Color x:Key="ShadowColor">#202634</Color>
   </Application.Resources>
 </Application>

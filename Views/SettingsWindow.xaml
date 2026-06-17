@@ -1,86 +1,241 @@
 <Window x:Class="QuickInput.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="快捷键设置"
+        Title="QuickInput 设置"
         Icon="/Assets/quick-input.ico"
-        Width="440"
-        Height="250"
-        MinWidth="420"
-        MinHeight="240"
-        ResizeMode="NoResize"
+        Width="620"
+        Height="520"
+        MinWidth="560"
+        MinHeight="460"
         WindowStartupLocation="CenterScreen"
-        Background="#F7F8FA"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource PrimaryTextBrush}"
         ShowInTaskbar="False">
+  <Window.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="MinWidth" Value="76" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="Foreground" Value="{DynamicResource ButtonTextBrush}" />
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="{DynamicResource FieldBackground}" />
+      <Setter Property="Foreground" Value="{DynamicResource InputForeground}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource InputForeground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushSoft}" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style TargetType="ComboBox">
+      <Setter Property="Background" Value="{DynamicResource FieldBackground}" />
+      <Setter Property="Foreground" Value="{DynamicResource InputForeground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushSoft}" />
+    </Style>
+    <Style TargetType="RadioButton">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+      <Setter Property="Margin" Value="0,0,18,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style TargetType="TabControl">
+      <Setter Property="Background" Value="{DynamicResource WindowBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushSoft}" />
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+    </Style>
+    <Style TargetType="TabItem">
+      <Setter Property="Background" Value="{DynamicResource HeaderBackground}" />
+      <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrushSoft}" />
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True">
+          <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+          <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+  </Window.Resources>
+
   <Grid Margin="20">
     <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <TextBlock Text="快捷键设置"
+    <TextBlock Text="QuickInput 设置"
                FontSize="22"
                FontWeight="SemiBold"
-               Foreground="#111827" />
+               Margin="0,0,0,16" />
 
-    <Border Grid.Row="1"
-            Margin="0,18,0,0"
-            Padding="14"
-            Background="#FFFFFF"
-            BorderBrush="#D6DAE3"
-            BorderThickness="1"
-            CornerRadius="8">
-      <Grid>
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <TextBlock Text="唤起/退出悬浮输入框"
-                   FontSize="13"
-                   Foreground="#4B5563"
-                   Margin="0,0,0,8" />
-        <TextBox x:Name="HotkeyBox"
-                 Grid.Row="1"
-                 Height="42"
-                 IsReadOnly="True"
-                 VerticalContentAlignment="Center"
-                 FontSize="18"
-                 FontWeight="SemiBold"
-                 Padding="12,0"
-                 BorderBrush="#AEB8C8"
-                 Background="#F9FAFB"
-                 PreviewKeyDown="HotkeyBox_OnPreviewKeyDown"
-                 GotKeyboardFocus="HotkeyBox_OnGotKeyboardFocus" />
-      </Grid>
-    </Border>
+    <TabControl Grid.Row="1"
+                Background="Transparent"
+                BorderBrush="{DynamicResource BorderBrushSoft}">
+      <TabItem Header="快捷键">
+        <Grid Margin="14">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
 
-    <TextBlock x:Name="MessageText"
-               Grid.Row="2"
-               Margin="2,12,2,0"
-               TextWrapping="Wrap"
-               FontSize="12"
-               Foreground="#64748B" />
+          <TextBlock Text="唤起/退出悬浮输入框"
+                     FontSize="13"
+                     Foreground="{DynamicResource SecondaryTextBrush}"
+                     Margin="0,0,0,8" />
+          <TextBox x:Name="HotkeyBox"
+                   Grid.Row="1"
+                   Height="42"
+                   IsReadOnly="True"
+                   VerticalContentAlignment="Center"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   PreviewKeyDown="HotkeyBox_OnPreviewKeyDown"
+                   GotKeyboardFocus="HotkeyBox_OnGotKeyboardFocus" />
+          <TextBlock x:Name="MessageText"
+                     Grid.Row="2"
+                     Margin="2,12,2,0"
+                     TextWrapping="Wrap"
+                     FontSize="12"
+                     Foreground="{DynamicResource SecondaryTextBrush}" />
+        </Grid>
+      </TabItem>
 
-    <StackPanel Grid.Row="3"
+      <TabItem Header="外观">
+        <Grid Margin="14">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="120" />
+            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+
+          <TextBlock Text="主题"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource SecondaryTextBrush}" />
+          <StackPanel Grid.Column="1"
+                      Orientation="Horizontal"
+                      VerticalAlignment="Center">
+            <RadioButton x:Name="SystemThemeOption"
+                         Content="跟随系统"
+                         Checked="ThemeOption_OnChecked" />
+            <RadioButton x:Name="LightThemeOption"
+                         Content="浅色"
+                         Checked="ThemeOption_OnChecked" />
+            <RadioButton x:Name="DarkThemeOption"
+                         Content="深色"
+                         Checked="ThemeOption_OnChecked" />
+          </StackPanel>
+
+          <TextBlock Grid.Row="1"
+                     Grid.ColumnSpan="3"
+                     Margin="0,12,0,0"
+                     Text="主题会立即应用到设置窗口和之后打开的悬浮窗。"
+                     FontSize="12"
+                     Foreground="{DynamicResource SecondaryTextBrush}" />
+
+          <CheckBox x:Name="StartupBox"
+                    Grid.Row="2"
+                    Grid.ColumnSpan="3"
+                    Margin="0,22,0,0"
+                    Content="开机自启动"
+                    Foreground="{DynamicResource PrimaryTextBrush}" />
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="快捷短语">
+        <Grid Margin="14">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="190" />
+            <ColumnDefinition Width="14" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <ListBox x:Name="PhraseList"
+                   DisplayMemberPath="DisplayTitle"
+                   Background="{DynamicResource FieldBackground}"
+                   Foreground="{DynamicResource InputForeground}"
+                   BorderBrush="{DynamicResource BorderBrushSoft}"
+                   SelectionChanged="PhraseList_OnSelectionChanged" />
+
+          <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="名称"
+                       FontSize="12"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       Margin="0,0,0,6" />
+            <TextBox x:Name="PhraseTitleBox"
+                     Grid.Row="1"
+                     Height="34"
+                     TextChanged="PhraseEditor_OnTextChanged" />
+
+            <Grid Grid.Row="2"
+                  Margin="0,12,0,0">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <TextBlock Text="内容"
+                         FontSize="12"
+                         Foreground="{DynamicResource SecondaryTextBrush}"
+                         Margin="0,0,0,6" />
+              <TextBox x:Name="PhraseTextBox"
+                       Grid.Row="1"
+                       MinHeight="180"
+                       AcceptsReturn="True"
+                       TextWrapping="Wrap"
+                       VerticalScrollBarVisibility="Auto"
+                       TextChanged="PhraseEditor_OnTextChanged" />
+            </Grid>
+          </Grid>
+
+          <StackPanel Grid.Row="1"
+                      Grid.ColumnSpan="3"
+                      Orientation="Horizontal"
+                      HorizontalAlignment="Left"
+                      Margin="0,12,0,0">
+            <Button Content="新增"
+                    Margin="0,0,8,0"
+                    Click="AddPhrase_OnClick" />
+            <Button Content="删除"
+                    Margin="0,0,8,0"
+                    Click="DeletePhrase_OnClick" />
+          </StackPanel>
+        </Grid>
+      </TabItem>
+    </TabControl>
+
+    <StackPanel Grid.Row="2"
+                Margin="0,16,0,0"
                 Orientation="Horizontal"
                 HorizontalAlignment="Right">
       <Button Content="恢复默认"
-              Width="84"
-              Height="34"
               Margin="0,0,8,0"
               Click="Default_OnClick" />
       <Button Content="取消"
-              Width="76"
-              Height="34"
               Margin="0,0,8,0"
               Click="Cancel_OnClick" />
       <Button Content="保存"
-              Width="76"
-              Height="34"
-              Background="#2563EB"
+              Background="{DynamicResource AccentBrush}"
               Foreground="#FFFFFF"
-              BorderBrush="#2563EB"
+              BorderBrush="{DynamicResource AccentBrush}"
               Click="Save_OnClick" />
     </StackPanel>
   </Grid>

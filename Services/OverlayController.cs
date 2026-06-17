@@ -49,13 +49,21 @@ public sealed class OverlayController
             return;
         }
 
+        var settings = _settingsStore.Load();
+        ThemeService.Apply(settings.Theme);
+
         _session = TargetTextSession.Capture();
-        _window = new OverlayWindow(_session.InitialValue, _session.StatusText);
+        _window = new OverlayWindow(
+            _session.InitialValue,
+            _session.StatusText,
+            settings.QuickPhrases
+                .Where(phrase => !string.IsNullOrWhiteSpace(phrase.Text))
+                .Select(phrase => phrase.Clone())
+                .ToList());
         _window.CloseRequested += (_, commit) => Close(commit);
         _window.LocationOrSizeChanged += (_, _) => SavePlacement();
         _window.TextChangedByUser += (_, text) => QueueTextSync(text);
 
-        var settings = _settingsStore.Load();
         WindowPlacementService.Restore(_window, settings.OverlayPlacement);
         _window.Show();
         _window.FocusInput();

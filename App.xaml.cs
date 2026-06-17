@@ -27,6 +27,7 @@ public partial class App : System.Windows.Application
 
         _settingsStore = new SettingsStore();
         var settings = _settingsStore.Load();
+        ThemeService.Apply(settings.Theme);
 
         _overlayController = new OverlayController(_settingsStore);
         _hotkeyService = new GlobalHotkeyService();
