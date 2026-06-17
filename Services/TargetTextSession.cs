@@ -91,7 +91,13 @@ public sealed class TargetTextSession
             textPattern = null;
         }
 
-        return new TargetTextSession(foreground, focusHandle, element, valuePattern, textPattern, canUseWin32Text);
+        return new TargetTextSession(
+            foreground,
+            focusHandle,
+            element,
+            valuePattern,
+            textPattern,
+            canUseWin32Text);
     }
 
     public string ReadCurrentText()
@@ -153,35 +159,39 @@ public sealed class TargetTextSession
 
         WaitForModifierRelease(TimeSpan.FromMilliseconds(500));
 
-        if (!RestoreFocusAndWait(TimeSpan.FromMilliseconds(200)))
+        if (!RestoreFocusAndWait(TimeSpan.FromMilliseconds(500)))
         {
             return false;
         }
 
-        Thread.Sleep(10);
+        Thread.Sleep(20);
         return UnicodeInputInjector.SendText(text);
     }
 
-    public void RestoreFocus()
+    public bool RestoreFocus()
     {
-        if (_foregroundWindow != IntPtr.Zero)
+        if (_foregroundWindow == IntPtr.Zero || !NativeMethods.IsWindow(_foregroundWindow))
         {
-            NativeMethods.SetForegroundWindow(_foregroundWindow);
+            return false;
         }
 
-        try
+        if (NativeMethods.IsIconic(_foregroundWindow))
         {
-            _targetElement?.SetFocus();
+            NativeMethods.ShowWindowAsync(_foregroundWindow, NativeMethods.SwRestore);
         }
-        catch
-        {
-            // Best effort only.
-        }
+
+        UnicodeInputInjector.SendVirtualKey((ushort)NativeMethods.VkMenu);
+        NativeMethods.BringWindowToTop(_foregroundWindow);
+        NativeMethods.SetForegroundWindow(_foregroundWindow);
+        return true;
     }
 
     private bool RestoreFocusAndWait(TimeSpan timeout)
     {
-        RestoreFocus();
+        if (!RestoreFocus())
+        {
+            return false;
+        }
 
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < timeout)
@@ -191,7 +201,9 @@ public sealed class TargetTextSession
                 return true;
             }
 
-            Thread.Sleep(1);
+            NativeMethods.BringWindowToTop(_foregroundWindow);
+            NativeMethods.SetForegroundWindow(_foregroundWindow);
+            Thread.Sleep(5);
         }
 
         return NativeMethods.GetForegroundWindow() == _foregroundWindow;

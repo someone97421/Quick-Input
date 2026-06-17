@@ -34,6 +34,19 @@ internal static class UnicodeInputInjector
         return true;
     }
 
+    public static bool SendVirtualKey(ushort virtualKey)
+    {
+        if (InputSize < 40)
+        {
+            return false;
+        }
+
+        var inputs = new List<NativeMethods.Input>(2);
+        AddVirtualKeyDown(inputs, virtualKey);
+        AddVirtualKeyUp(inputs, virtualKey);
+        return SendInputs(inputs.ToArray());
+    }
+
     private static bool SendInputs(NativeMethods.Input[] inputs)
     {
         var sent = NativeMethods.SendInput(
